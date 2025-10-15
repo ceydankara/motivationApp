@@ -17,10 +17,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -36,10 +33,7 @@ class DefaultFirebaseOptions {
           'you can reconfigure this by running the FlutterFire CLI again.',
         );
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -52,11 +46,31 @@ class DefaultFirebaseOptions {
     }
   }
 
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyB0J3m0biKRNc_kpT8gUVqUV799iU6XKOw',
+    appId: '1:124031798661:web:fb0637ac2352253f4788ec',
+    messagingSenderId: '124031798661',
+    projectId: 'motivationapp-35401',
+    authDomain: 'motivationapp-35401.firebaseapp.com',
+    storageBucket: 'motivationapp-35401.firebasestorage.app',
+    measurementId: 'G-QTJLQXBEX2',
+  );
+
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyAXSiMrNM0jyr9e7J1VEdX2vaIk2OKDWjA',
     appId: '1:124031798661:android:e544ec51af1722204788ec',
     messagingSenderId: '124031798661',
     projectId: 'motivationapp-35401',
-    storageBucket: 'motivationapp-35401.appspot.com',
+    storageBucket: 'motivationapp-35401.firebasestorage.app',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyB0J3m0biKRNc_kpT8gUVqUV799iU6XKOw',
+    appId: '1:124031798661:web:fb0637ac2352253f4788ec',
+    messagingSenderId: '124031798661',
+    projectId: 'motivationapp-35401',
+    authDomain: 'motivationapp-35401.firebaseapp.com',
+    storageBucket: 'motivationapp-35401.firebasestorage.app',
+    measurementId: 'G-QTJLQXBEX2',
   );
 }

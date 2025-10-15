@@ -57,8 +57,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Günlük Motivasyon"),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        foregroundColor: const Color.fromARGB(221, 10, 79, 217),
+        elevation: 1,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -104,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: Colors.deepPurple,
+                        color: Color.fromARGB(255, 39, 134, 133),
                       ),
                     ),
                   ],
@@ -112,7 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            
+
             // To-Do Listesi
             Expanded(
               child: Card(
@@ -142,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      
+
                       // To-Do Ekleme Alanı
                       Row(
                         children: [
@@ -168,7 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // To-Do Listesi
                       Expanded(
                         child: _todoService.todos.isEmpty
