@@ -5,6 +5,7 @@ import '../models/quote.dart';
 import '../models/todo_item.dart';
 import '../services/quote_service.dart';
 import '../services/todo_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,11 +19,32 @@ class _HomeScreenState extends State<HomeScreen> {
   final TodoService _todoService = TodoService();
   late Quote _currentQuote;
   final TextEditingController _todoController = TextEditingController();
+  String? _username;
 
   @override
   void initState() {
     super.initState();
     _currentQuote = _quoteService.getRandomQuote(); // İlk sözü yükle
+    _loadUsername();
+  }
+
+  Future<void> _loadUsername() async {
+    final prefs = await SharedPreferences.getInstance();
+    final name = prefs.getString('username');
+    if (name == null || name.trim().isEmpty) {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed('/auth');
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _username = name);
+  }
+
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('username');
+    if (!mounted) return;
+    Navigator.of(context).pushReplacementNamed('/auth');
   }
 
   void _getNewQuote() {
@@ -56,10 +78,19 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Günlük Motivasyon"),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color.fromARGB(221, 10, 79, 217),
+        title: Text(
+          _username == null ? "Günlük Motivasyon" : "Hoş geldin $_username",
+        ),
+        backgroundColor: const Color.fromARGB(255, 169, 209, 208),
+        foregroundColor: const Color.fromARGB(255, 254, 237, 219),
         elevation: 1,
+        actions: [
+          IconButton(
+            onPressed: _logout,
+            tooltip: 'Çıkış',
+            icon: const Icon(Icons.logout),
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -208,7 +239,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                       trailing: IconButton(
                                         onPressed: () => _deleteTodo(todo.id),
                                         icon: const Icon(Icons.delete),
-                                        color: Colors.red,
+                                        color: const Color.fromARGB(
+                                          255,
+                                          105,
+                                          3,
+                                          3,
+                                        ),
                                       ),
                                     ),
                                   );

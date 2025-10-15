@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'firebase_options.dart';
 import 'screens/home_screen.dart';
+import 'screens/auth_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,7 +52,10 @@ class MyApp extends StatelessWidget {
           seedColor: const Color.fromARGB(255, 210, 208, 207),
         ),
       ),
-      home: const HomeScreen(),
+      routes: {
+        '/': (_) => const HomeScreen(),
+        '/auth': (_) => const AuthScreen(),
+      },
     );
   }
 }
