@@ -87,8 +87,8 @@ class _AuthScreenState extends State<AuthScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_isLoginMode ? 'Giriş Yap' : 'Kayıt Ol'),
-        backgroundColor: const Color.fromARGB(255, 169, 209, 208),
-        foregroundColor: const Color.fromARGB(255, 254, 237, 219),
+        backgroundColor: const Color.fromARGB(255, 39, 134, 133),
+        foregroundColor: const Color.fromARGB(255, 249, 248, 248),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
