@@ -5,9 +5,14 @@ import 'package:flutter/foundation.dart'
 import 'firebase_options.dart';
 import 'screens/home_screen.dart';
 import 'screens/auth_screen.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize notifications
+  await NotificationService.initialize();
+
   // Initialize Firebase only on Android to avoid UnsupportedError on other platforms
   if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
     if (Firebase.apps.isEmpty) {

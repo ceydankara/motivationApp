@@ -23,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _todoController = TextEditingController();
   String? _username;
   bool _isLoading = true; // Yükleme durumu ekledik.
+  DateTime? _selectedReminderTime;
 
   @override
   void initState() {
@@ -89,11 +90,51 @@ class _HomeScreenState extends State<HomeScreen> {
   void _addTodo() {
     if (_todoController.text.trim().isNotEmpty) {
       setState(() {
-        _todoService.addTodo(_todoController.text);
+        _todoService.addTodo(
+          _todoController.text,
+          reminderTime: _selectedReminderTime,
+        );
         _todoController.clear();
+        _selectedReminderTime = null;
         _todoService.saveTodos(); // Değişiklikten sonra kaydet
       });
     }
+  }
+
+  Future<void> _selectReminderTime() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedReminderTime ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+
+    if (picked != null && mounted) {
+      final TimeOfDay? time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(
+          _selectedReminderTime ?? DateTime.now(),
+        ),
+      );
+
+      if (time != null && mounted) {
+        setState(() {
+          _selectedReminderTime = DateTime(
+            picked.year,
+            picked.month,
+            picked.day,
+            time.hour,
+            time.minute,
+          );
+        });
+      }
+    }
+  }
+
+  void _clearReminderTime() {
+    setState(() {
+      _selectedReminderTime = null;
+    });
   }
 
   void _toggleTodo(String id) {
@@ -219,26 +260,125 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 12),
 
                       // To-Do Ekleme Alanı
-                      Row(
+                      Column(
                         children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _todoController,
-                              decoration: const InputDecoration(
-                                hintText: "Yeni görev ekle...",
-                                border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _todoController,
+                                  decoration: const InputDecoration(
+                                    hintText: "Yeni görev ekle...",
+                                    border: OutlineInputBorder(),
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                  onSubmitted: (_) => _addTodo(),
                                 ),
                               ),
-                              onSubmitted: (_) => _addTodo(),
-                            ),
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                onPressed: _addTodo,
+                                child: const Icon(Icons.add),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: _addTodo,
-                            child: const Icon(Icons.add),
+                          const SizedBox(height: 8),
+
+                          // Hatırlatıcı Zamanı Seçimi
+                          Row(
+                            children: [
+                              IconButton(
+                                onPressed: _selectReminderTime,
+                                icon: Icon(
+                                  Icons.access_time,
+                                  color: _selectedReminderTime != null
+                                      ? const Color.fromARGB(255, 39, 134, 133)
+                                      : Colors.grey,
+                                ),
+                                tooltip: "Hatırlatıcı Ekle",
+                              ),
+                              Expanded(
+                                child: _selectedReminderTime != null
+                                    ? Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color.fromARGB(
+                                            255,
+                                            39,
+                                            134,
+                                            133,
+                                          ).withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          border: Border.all(
+                                            color: const Color.fromARGB(
+                                              255,
+                                              39,
+                                              134,
+                                              133,
+                                            ).withValues(alpha: 0.3),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.schedule,
+                                              size: 16,
+                                              color: Color.fromARGB(
+                                                255,
+                                                39,
+                                                134,
+                                                133,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              "${_selectedReminderTime!.day}/${_selectedReminderTime!.month}/${_selectedReminderTime!.year} "
+                                              "${_selectedReminderTime!.hour.toString().padLeft(2, '0')}:"
+                                              "${_selectedReminderTime!.minute.toString().padLeft(2, '0')}",
+                                              style: const TextStyle(
+                                                color: Color.fromARGB(
+                                                  255,
+                                                  39,
+                                                  134,
+                                                  133,
+                                                ),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            const Spacer(),
+                                            GestureDetector(
+                                              onTap: _clearReminderTime,
+                                              child: const Icon(
+                                                Icons.close,
+                                                size: 16,
+                                                color: Color.fromARGB(
+                                                  255,
+                                                  39,
+                                                  134,
+                                                  133,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    : const Text(
+                                        "Hatırlatıcı eklemek için saat ikonuna tıklayın",
+                                        style: TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -268,16 +408,84 @@ class _HomeScreenState extends State<HomeScreen> {
                                         value: todo.isCompleted,
                                         onChanged: (_) => _toggleTodo(todo.id),
                                       ),
-                                      title: Text(
-                                        todo.text,
-                                        style: TextStyle(
-                                          decoration: todo.isCompleted
-                                              ? TextDecoration.lineThrough
-                                              : null,
-                                          color: todo.isCompleted
-                                              ? Colors.grey
-                                              : null,
-                                        ),
+                                      title: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            todo.text,
+                                            style: TextStyle(
+                                              decoration: todo.isCompleted
+                                                  ? TextDecoration.lineThrough
+                                                  : null,
+                                              color: todo.isCompleted
+                                                  ? Colors.grey
+                                                  : null,
+                                            ),
+                                          ),
+                                          if (todo.hasReminder &&
+                                              todo.reminderTime != null)
+                                            Container(
+                                              margin: const EdgeInsets.only(
+                                                top: 4,
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 2,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: const Color.fromARGB(
+                                                  255,
+                                                  39,
+                                                  134,
+                                                  133,
+                                                ).withValues(alpha: 0.1),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color: const Color.fromARGB(
+                                                    255,
+                                                    39,
+                                                    134,
+                                                    133,
+                                                  ).withValues(alpha: 0.3),
+                                                ),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(
+                                                    Icons.schedule,
+                                                    size: 12,
+                                                    color: Color.fromARGB(
+                                                      255,
+                                                      39,
+                                                      134,
+                                                      133,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    "${todo.reminderTime!.day}/${todo.reminderTime!.month}/${todo.reminderTime!.year} "
+                                                    "${todo.reminderTime!.hour.toString().padLeft(2, '0')}:"
+                                                    "${todo.reminderTime!.minute.toString().padLeft(2, '0')}",
+                                                    style: const TextStyle(
+                                                      color: Color.fromARGB(
+                                                        255,
+                                                        39,
+                                                        134,
+                                                        133,
+                                                      ),
+                                                      fontSize: 10,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                        ],
                                       ),
                                       trailing: IconButton(
                                         onPressed: () => _deleteTodo(todo.id),

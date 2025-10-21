@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/todo_item.dart';
+import 'notification_service.dart';
 
 class TodoService {
   final List<TodoItem> _todos = [];
@@ -18,16 +19,28 @@ class TodoService {
   List<TodoItem> get pendingTodos =>
       _todos.where((todo) => !todo.isCompleted).toList();
 
-  void addTodo(String text) {
+  void addTodo(String text, {DateTime? reminderTime}) {
     if (text.trim().isEmpty) return;
 
+    final todoId = DateTime.now().millisecondsSinceEpoch.toString();
     final newTodo = TodoItem(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: todoId,
       text: text.trim(),
       createdAt: DateTime.now(),
+      reminderTime: reminderTime,
+      hasReminder: reminderTime != null,
     );
 
     _todos.add(newTodo);
+
+    // Hatırlatıcı zamanı varsa bildirim zamanla
+    if (reminderTime != null) {
+      _scheduleReminderNotification(
+        int.parse(todoId),
+        text.trim(),
+        reminderTime,
+      );
+    }
   }
 
   void toggleTodo(String id) {
@@ -40,6 +53,16 @@ class TodoService {
   }
 
   void deleteTodo(String id) {
+    // Silmeden önce bildirimi iptal et
+    final todo = _todos.firstWhere(
+      (todo) => todo.id == id,
+      orElse: () => TodoItem(id: '', text: '', createdAt: DateTime.now()),
+    );
+
+    if (todo.id.isNotEmpty && todo.hasReminder) {
+      NotificationService.cancelReminder(int.parse(id));
+    }
+
     _todos.removeWhere((todo) => todo.id == id);
   }
 
@@ -77,4 +100,18 @@ class TodoService {
   int get completedCount => completedTodos.length;
   int get pendingCount => pendingTodos.length;
   int get totalCount => _todos.length;
+
+  // Hatırlatıcı bildirimi zamanla
+  Future<void> _scheduleReminderNotification(
+    int id,
+    String text,
+    DateTime reminderTime,
+  ) async {
+    await NotificationService.scheduleReminder(
+      id: id,
+      title: 'Görev Hatırlatıcısı',
+      body: text,
+      scheduledTime: reminderTime,
+    );
+  }
 }
