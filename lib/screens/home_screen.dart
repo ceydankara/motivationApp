@@ -2,10 +2,9 @@
 
 import 'package:flutter/material.dart';
 import '../models/quote.dart';
-import '../models/todo_item.dart';
 import '../services/quote_service.dart';
 import '../services/todo_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../services/auth_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,35 +14,69 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // TodoService'in Singleton olarak varsayıldığı için, sadece bir kez oluşturulur.
   final QuoteService _quoteService = QuoteService();
   final TodoService _todoService = TodoService();
+  final AuthService _authService = AuthService();
+
   late Quote _currentQuote;
   final TextEditingController _todoController = TextEditingController();
   String? _username;
+  bool _isLoading = true; // Yükleme durumu ekledik.
 
   @override
   void initState() {
     super.initState();
-    _currentQuote = _quoteService.getRandomQuote(); // İlk sözü yükle
-    _loadUsername();
+    _currentQuote = _quoteService.getRandomQuote();
+    // Hem kullanıcıyı hem de Todo'ları aynı anda yüklemeye başla.
+    _initializeData();
+  }
+
+  // Widget'ın kapatılmasından önce controller'ı temizle.
+  @override
+  void dispose() {
+    _todoController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initializeData() async {
+    await _loadUsername();
+    // Kullanıcı yüklendikten sonra (veya yönlendirme yapılmadıysa) Todo'ları yükle.
+    if (_username != null) {
+      // TodoService'in içinde yükleme mantığı olduğunu varsayıyoruz.
+      // Bu çağrı, TodoService'in Shared Preferences'tan veriyi çekmesini sağlar.
+      await _todoService.loadTodos();
+    }
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _loadUsername() async {
-    final prefs = await SharedPreferences.getInstance();
-    final name = prefs.getString('username');
-    if (name == null || name.trim().isEmpty) {
+    final currentUser = await _authService.getCurrentUser();
+
+    // Kullanıcı adı yoksa, giriş ekranına yönlendir.
+    if (currentUser == null || currentUser.trim().isEmpty) {
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed('/auth');
       return;
     }
+
     if (!mounted) return;
-    setState(() => _username = name);
+    setState(() => _username = currentUser);
   }
 
   Future<void> _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('username');
+    await _authService.logout();
+
+    // Çıkış yaparken Todo listesini temizlemeye gerek yok, sadece kullanıcı adını temizleriz.
+    // Başka bir kullanıcı giriş yaparsa kendi listesini görecektir.
+
     if (!mounted) return;
+    // Çıkış yapınca Auth ekranına yönlendir.
     Navigator.of(context).pushReplacementNamed('/auth');
   }
 
@@ -58,6 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _todoService.addTodo(_todoController.text);
         _todoController.clear();
+        _todoService.saveTodos(); // Değişiklikten sonra kaydet
       });
     }
   }
@@ -65,17 +99,25 @@ class _HomeScreenState extends State<HomeScreen> {
   void _toggleTodo(String id) {
     setState(() {
       _todoService.toggleTodo(id);
+      _todoService.saveTodos(); // Değişiklikten sonra kaydet
     });
   }
 
   void _deleteTodo(String id) {
     setState(() {
       _todoService.deleteTodo(id);
+      _todoService.saveTodos(); // Değişiklikten sonra kaydet
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Veriler yüklenirken yükleme ekranı göster
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    // Yükleme bittiyse normal ekranı göster
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -165,6 +207,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           Text(
+                            // TodoService'in anlık durumu
                             "${_todoService.completedCount}/${_todoService.totalCount}",
                             style: const TextStyle(
                               fontSize: 14,
