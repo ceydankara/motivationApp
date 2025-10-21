@@ -23,6 +23,8 @@ class TodoService {
     if (text.trim().isEmpty) return;
 
     final todoId = DateTime.now().millisecondsSinceEpoch.toString();
+    final notificationId =
+        DateTime.now().millisecondsSinceEpoch % 2147483647; // 32-bit int limit
     final newTodo = TodoItem(
       id: todoId,
       text: text.trim(),
@@ -35,11 +37,7 @@ class TodoService {
 
     // Hatırlatıcı zamanı varsa bildirim zamanla
     if (reminderTime != null) {
-      _scheduleReminderNotification(
-        int.parse(todoId),
-        text.trim(),
-        reminderTime,
-      );
+      _scheduleReminderNotification(notificationId, text.trim(), reminderTime);
     }
   }
 
@@ -60,7 +58,8 @@ class TodoService {
     );
 
     if (todo.id.isNotEmpty && todo.hasReminder) {
-      NotificationService.cancelReminder(int.parse(id));
+      final notificationId = int.parse(id) % 2147483647; // 32-bit int limit
+      NotificationService.cancelReminder(notificationId);
     }
 
     _todos.removeWhere((todo) => todo.id == id);
@@ -68,6 +67,28 @@ class TodoService {
 
   void clearCompleted() {
     _todos.removeWhere((todo) => todo.isCompleted);
+  }
+
+  void updateTodoReminder(String id, DateTime? reminderTime) {
+    final index = _todos.indexWhere((todo) => todo.id == id);
+    if (index != -1) {
+      _todos[index] = _todos[index].copyWith(
+        reminderTime: reminderTime,
+        hasReminder: reminderTime != null,
+      );
+
+      // Bildirim güncelle
+      final notificationId = int.parse(id) % 2147483647; // 32-bit int limit
+      if (reminderTime != null) {
+        _scheduleReminderNotification(
+          notificationId,
+          _todos[index].text,
+          reminderTime,
+        );
+      } else {
+        NotificationService.cancelReminder(notificationId);
+      }
+    }
   }
 
   Future<void> loadTodos() async {

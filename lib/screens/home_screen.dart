@@ -2,9 +2,11 @@
 
 import 'package:flutter/material.dart';
 import '../models/quote.dart';
+import '../models/todo_item.dart';
 import '../services/quote_service.dart';
 import '../services/todo_service.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -137,6 +139,65 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<void> _editTodoReminder(String todoId, String currentText) async {
+    final todo = _todoService.todos.firstWhere(
+      (t) => t.id == todoId,
+      orElse: () => TodoItem(id: '', text: '', createdAt: DateTime.now()),
+    );
+
+    DateTime? selectedTime = todo.reminderTime;
+
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedTime ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+
+    if (picked != null && mounted) {
+      final TimeOfDay? time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(selectedTime ?? DateTime.now()),
+      );
+
+      if (time != null && mounted) {
+        final newReminderTime = DateTime(
+          picked.year,
+          picked.month,
+          picked.day,
+          time.hour,
+          time.minute,
+        );
+
+        setState(() {
+          _todoService.updateTodoReminder(todoId, newReminderTime);
+          _todoService.saveTodos();
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Hatırlatıcı güncellendi'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _removeTodoReminder(String todoId) async {
+    setState(() {
+      _todoService.updateTodoReminder(todoId, null);
+      _todoService.saveTodos();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Hatırlatıcı kaldırıldı'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _toggleTodo(String id) {
     setState(() {
       _todoService.toggleTodo(id);
@@ -168,6 +229,19 @@ class _HomeScreenState extends State<HomeScreen> {
         foregroundColor: const Color.fromARGB(255, 254, 237, 219),
         elevation: 1,
         actions: [
+          IconButton(
+            onPressed: () async {
+              await NotificationService.showTestNotification();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Test bildirimi gönderildi'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            tooltip: 'Test Bildirimi',
+            icon: const Icon(Icons.notifications),
+          ),
           IconButton(
             onPressed: _logout,
             tooltip: 'Çıkış',
@@ -480,6 +554,104 @@ class _HomeScreenState extends State<HomeScreen> {
                                                       fontSize: 10,
                                                       fontWeight:
                                                           FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  GestureDetector(
+                                                    onTap: () =>
+                                                        _editTodoReminder(
+                                                          todo.id,
+                                                          todo.text,
+                                                        ),
+                                                    child: const Icon(
+                                                      Icons.edit,
+                                                      size: 12,
+                                                      color: Color.fromARGB(
+                                                        255,
+                                                        39,
+                                                        134,
+                                                        133,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  GestureDetector(
+                                                    onTap: () =>
+                                                        _removeTodoReminder(
+                                                          todo.id,
+                                                        ),
+                                                    child: const Icon(
+                                                      Icons.close,
+                                                      size: 12,
+                                                      color: Color.fromARGB(
+                                                        255,
+                                                        39,
+                                                        134,
+                                                        133,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          if (!todo.hasReminder)
+                                            Container(
+                                              margin: const EdgeInsets.only(
+                                                top: 4,
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  GestureDetector(
+                                                    onTap: () =>
+                                                        _editTodoReminder(
+                                                          todo.id,
+                                                          todo.text,
+                                                        ),
+                                                    child: Container(
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 8,
+                                                            vertical: 4,
+                                                          ),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.grey
+                                                            .withValues(
+                                                              alpha: 0.1,
+                                                            ),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              8,
+                                                            ),
+                                                        border: Border.all(
+                                                          color: Colors.grey
+                                                              .withValues(
+                                                                alpha: 0.3,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                      child: const Row(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        children: [
+                                                          Icon(
+                                                            Icons.schedule,
+                                                            size: 12,
+                                                            color: Colors.grey,
+                                                          ),
+                                                          SizedBox(width: 4),
+                                                          Text(
+                                                            'Hatırlatıcı Ekle',
+                                                            style: TextStyle(
+                                                              color:
+                                                                  Colors.grey,
+                                                              fontSize: 10,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
                                                     ),
                                                   ),
                                                 ],

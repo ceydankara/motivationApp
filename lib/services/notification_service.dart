@@ -57,11 +57,73 @@ class NotificationService {
     required String body,
     required DateTime scheduledTime,
   }) async {
-    const AndroidNotificationDetails androidDetails =
+    // Önce mevcut bildirimi iptal et
+    await _notifications.cancel(id);
+
+    // Geçmiş zaman kontrolü
+    if (scheduledTime.isBefore(DateTime.now())) {
+      debugPrint('Geçmiş zaman için bildirim zamanlanamaz: $scheduledTime');
+      return;
+    }
+
+    final AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
           'reminder_channel',
           'Hatırlatıcılar',
           channelDescription: 'Görev hatırlatıcıları',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+          enableVibration: true,
+          playSound: true,
+          showWhen: true,
+          when: scheduledTime.millisecondsSinceEpoch,
+        );
+
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    final NotificationDetails notificationDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    try {
+      await _notifications.zonedSchedule(
+        id,
+        title,
+        body,
+        tz.TZDateTime.from(scheduledTime, tz.local),
+        notificationDetails,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: 'todo_reminder_$id',
+      );
+      debugPrint('Bildirim zamanlandı: $scheduledTime');
+    } catch (e) {
+      debugPrint('Bildirim zamanlama hatası: $e');
+    }
+  }
+
+  static Future<void> cancelReminder(int id) async {
+    await _notifications.cancel(id);
+  }
+
+  static Future<void> cancelAllReminders() async {
+    await _notifications.cancelAll();
+  }
+
+  // Test bildirimi gönder
+  static Future<void> showTestNotification() async {
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+          'test_channel',
+          'Test Bildirimleri',
+          channelDescription: 'Test bildirimleri',
           importance: Importance.high,
           priority: Priority.high,
           icon: '@mipmap/ic_launcher',
@@ -78,23 +140,11 @@ class NotificationService {
       iOS: iosDetails,
     );
 
-    await _notifications.zonedSchedule(
-      id,
-      title,
-      body,
-      tz.TZDateTime.from(scheduledTime, tz.local),
+    await _notifications.show(
+      999,
+      'Test Bildirimi',
+      'Bildirim sistemi çalışıyor!',
       notificationDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
     );
-  }
-
-  static Future<void> cancelReminder(int id) async {
-    await _notifications.cancel(id);
-  }
-
-  static Future<void> cancelAllReminders() async {
-    await _notifications.cancelAll();
   }
 }
